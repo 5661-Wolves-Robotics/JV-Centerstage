@@ -6,6 +6,7 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.acmerobotics.roadrunner.control.PIDFController;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -57,7 +58,7 @@ public class RedBackstage extends LinearOpMode {
 
         MultipleTelemetry telemetry = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
 
-        bot.init(hardwareMap, FieldConstants.RED_BACKSTAGE_START);
+        bot.init(hardwareMap, FieldConstants.RED_BACKSTAGE_START, new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry()));
         drive = bot.getDrive();
 
         TrajectorySequence prepProp = drive.trajectorySequenceBuilder(drive.getPoseEstimate())
@@ -116,7 +117,7 @@ public class RedBackstage extends LinearOpMode {
                     case PLACING_BACKDROP_PIXEL: {
                         bot.claw.toggle();
                         drive.followTrajectory(drive.trajectoryBuilder(drive.getPoseEstimate())
-                                .lineToLinearHeading(new Pose2d(54, BACKDROPS[propPos], Math.toRadians(180)))
+                                .lineToLinearHeading(new Pose2d(55, BACKDROPS[propPos], Math.toRadians(180)))
                                 .build()
                         );
                         placeTime2 = time.milliseconds();
@@ -124,9 +125,9 @@ public class RedBackstage extends LinearOpMode {
                         break;
                     }
                     case PLACING: {
-                        bot.moveSlideToPos(1200);
+                        bot.setSlidePos(1200);
                         if (time.milliseconds() - placeTime2 >= 1200) {
-                            bot.setArmPos(0.19);
+                            bot.setArmState(CenterStageBot.ArmState.LOWERED);
                             state = State.DROPPING;
                         }
                         break;
@@ -141,9 +142,7 @@ public class RedBackstage extends LinearOpMode {
                     }
                     case PARKING: {
                         drive.followTrajectorySequenceAsync(drive.trajectorySequenceBuilder(drive.getPoseEstimate())
-                                .forward(4)
-                                .waitSeconds(0.1)
-                                .strafeLeft(24)
+                                .splineToConstantHeading(new Vector2d(46, -8), Math.toRadians(180))
                                 .build()
                         );
                         parked = true;
@@ -152,10 +151,10 @@ public class RedBackstage extends LinearOpMode {
                 }
             }
 
-            bot.update(this.telemetry);
-
             telemetry.addData("dist", bot.getDist());
             telemetry.update();
+
+            bot.update();
 
         }
 

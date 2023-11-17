@@ -58,7 +58,7 @@ import static org.firstinspires.ftc.teamcode.drive.DriveConstants.kV;
 @Config
 public class Mecanum extends MecanumDrive{
 
-    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(4, 0.1, 0.3);
+    public static PIDCoefficients TRANSLATIONAL_PID = new PIDCoefficients(7, 0.1, 0.3);
     public static PIDCoefficients HEADING_PID = new PIDCoefficients(8, 0, 0.4);
 
     public static double LATERAL_MULTIPLIER = 1.524259519948103;
@@ -265,7 +265,7 @@ public class Mecanum extends MecanumDrive{
     }
 
     public void setFieldCentricWeightedDrivePower(Pose2d drivePower){
-        Vector2d vec = drivePower.vec().rotated(-getRawExternalHeading());
+        Vector2d vec = drivePower.vec().rotated(-getExternalHeading());
         setWeightedDrivePower(new Pose2d(vec, drivePower.getHeading()));
     }
 

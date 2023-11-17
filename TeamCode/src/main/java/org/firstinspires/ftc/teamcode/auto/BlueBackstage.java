@@ -53,7 +53,7 @@ public class BlueBackstage extends LinearOpMode {
 
         MultipleTelemetry telemetry = new MultipleTelemetry(this.telemetry, FtcDashboard.getInstance().getTelemetry());
 
-        bot.init(hardwareMap, FieldConstants.BLUE_BACKSTAGE_START);
+        bot.init(hardwareMap, FieldConstants.BLUE_BACKSTAGE_START, new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry()));
         drive = bot.getDrive();
 
         TrajectorySequence prepProp = drive.trajectorySequenceBuilder(drive.getPoseEstimate())
@@ -120,9 +120,9 @@ public class BlueBackstage extends LinearOpMode {
                         break;
                     }
                     case PLACING: {
-                        bot.moveSlideToPos(1300);
+                        bot.setSlidePos(1300);
                         if (time.milliseconds() - placeTime2 >= 1200) {
-                            bot.setArmPos(0.19);
+                            bot.setArmState(CenterStageBot.ArmState.LOWERED);
                             state = State.DROPPING;
                         }
                         break;
@@ -148,10 +148,11 @@ public class BlueBackstage extends LinearOpMode {
                 }
             }
 
-            bot.update(this.telemetry);
-
             telemetry.addData("dist", bot.getDist());
             telemetry.update();
+
+            bot.update();
+
         }
 
         bot.storePose();

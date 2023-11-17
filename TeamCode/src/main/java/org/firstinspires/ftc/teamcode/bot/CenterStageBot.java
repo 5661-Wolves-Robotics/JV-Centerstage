@@ -4,7 +4,10 @@ import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
+import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -19,12 +22,16 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.drive.Mecanum;
+import org.firstinspires.ftc.teamcode.teleop.TeleOpMain;
 import org.firstinspires.ftc.teamcode.util.CameraStream;
 import org.firstinspires.ftc.teamcode.util.motor.LimitedMotor;
 import org.firstinspires.ftc.teamcode.util.servo.ToggleServo;
 import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
+import java.util.List;
 
 @Config
 public class CenterStageBot extends Robot<Mecanum>{
@@ -52,7 +59,7 @@ public class CenterStageBot extends Robot<Mecanum>{
     public Servo leftArm = null;
     public static final float RAISED_ARM = 0.32f;
     public static final float STORED_ARM = 0.25f;
-    public static final float LOWERED_ARM = 0.20f;
+    public static final float LOWERED_ARM = 0.18f;
 
     public enum ArmState {
         LOWERED,
@@ -86,8 +93,9 @@ public class CenterStageBot extends Robot<Mecanum>{
     private static final float LAUNCHER_DOWN = 0.0f;
     private static final float LAUNCHER_UP = 0.5f;
 
-    //COLOR
+    //RANGE
     ModernRoboticsI2cRangeSensor rangeSensor = null;
+    private static final Vector2d RANGE_POS = new Vector2d(-8.6, 0);
 
     private double prevTime = 0;
     private double deltaTime = 0;
@@ -95,8 +103,8 @@ public class CenterStageBot extends Robot<Mecanum>{
     public CenterStageBot() {super();}
 
     @Override
-    public void init(HardwareMap hardwareMap, Pose2d pose){
-        super.init(hardwareMap, new Mecanum(hardwareMap), pose);
+    public void init(HardwareMap hardwareMap, Pose2d pose, MultipleTelemetry telemetry){
+        super.init(hardwareMap, new Mecanum(hardwareMap), pose, telemetry);
 
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
@@ -209,7 +217,7 @@ public class CenterStageBot extends Robot<Mecanum>{
                 break;
             }
             case STORING:{
-                if(slidePos < 800){
+                if(slidePos < 920){
                     setArmState(ArmState.STORED);
                 }
                 break;
@@ -239,11 +247,6 @@ public class CenterStageBot extends Robot<Mecanum>{
         launcher.toggle();
     }
 
-    public void moveSlideToPos(int pos){
-        leftSlide.setTargetPosition(pos);
-        rightSlide.setTargetPosition(pos);
-    }
-
     public SlideState getSlideState(){
         return slideState;
     }
@@ -268,12 +271,25 @@ public class CenterStageBot extends Robot<Mecanum>{
         return armState;
     }
 
+    public List<AprilTagDetection> getAprilTags(){
+        return aprilTagProcessor.getDetections();
+    }
+
     @Override
-    public void update(@NonNull Telemetry telemetry) {
+    public void update() {
+        TelemetryPacket packet = new TelemetryPacket();
+
+        Pose2d poseEstimate = drive.getPoseEstimate();
+        Vector2d distPoint = RANGE_POS.plus(new Vector2d(-getDist(), 0)).rotated(poseEstimate.getHeading()).plus(poseEstimate.vec());
+
+        packet.fieldOverlay().fillCircle(distPoint.getX(), distPoint.getY(), 2);
+
         telemetry.addData("Slide", slidePos);
         updateSlide();
 
         drive.update();
+        FtcDashboard.getInstance().sendTelemetryPacket(packet);
+        telemetry.update();
 
         double newTime = time.seconds();
         deltaTime = newTime - prevTime;

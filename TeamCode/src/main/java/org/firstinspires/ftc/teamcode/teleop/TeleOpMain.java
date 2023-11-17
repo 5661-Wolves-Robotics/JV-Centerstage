@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.teleop;
 
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.acmerobotics.roadrunner.control.PIDFController;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
@@ -54,7 +56,7 @@ public class TeleOpMain extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
 
-        bot.init(hardwareMap, Robot.getStoredPose());
+        bot.init(hardwareMap, Robot.getStoredPose(), new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry()));
         Mecanum drive = bot.getDrive();
 
         driver = new Gamepad(gamepad1);
@@ -66,6 +68,7 @@ public class TeleOpMain extends LinearOpMode {
         waitForStart();
 
         time.reset();
+        side = Side.RED;
 
         while(opModeIsActive()){
 
@@ -94,7 +97,7 @@ public class TeleOpMain extends LinearOpMode {
                         else bot.intake.setPower(0.0);
                     }
 
-                    if (driver.getButtonState(Gamepad.Button.A) == Gamepad.ButtonState.PRESSED) {
+                    if (driver.getButtonState(Gamepad.Button.A) == Gamepad.ButtonState.PRESSED && bot.getSlidePos() < 100) {
                         currState = State.PLACING;
 
                         placer.rumble(RUMBLE_DURATION);
@@ -108,14 +111,14 @@ public class TeleOpMain extends LinearOpMode {
                         bot.launchPlane();
                     }
 
-                    if(placer.getButtonState(Gamepad.Button.X) == Gamepad.ButtonState.PRESSED) {
+                    if(placer.getButtonState(Gamepad.Button.DPAD_UP) == Gamepad.ButtonState.PRESSED) {
                         if(bot.getArmState() == CenterStageBot.ArmState.LOWERED) bot.setArmState(CenterStageBot.ArmState.STORED);
-                        else bot.setArmState(CenterStageBot.ArmState.LOWERED);
+                        else bot.setArmState(CenterStageBot.ArmState.RAISED);
                     }
 
-                    if(placer.getButtonState(Gamepad.Button.B) == Gamepad.ButtonState.PRESSED) {
+                    if(placer.getButtonState(Gamepad.Button.DPAD_DOWN) == Gamepad.ButtonState.PRESSED) {
                         if(bot.getArmState() == CenterStageBot.ArmState.RAISED) bot.setArmState(CenterStageBot.ArmState.STORED);
-                        else bot.setArmState(CenterStageBot.ArmState.RAISED);
+                        else bot.setArmState(CenterStageBot.ArmState.LOWERED);
                     }
 
                     if(placer.getButtonState(Gamepad.Button.A) == Gamepad.ButtonState.PRESSED) {
@@ -125,18 +128,23 @@ public class TeleOpMain extends LinearOpMode {
                     bot.setSlidePower(placer.r_trigger - placer.l_trigger);
 
                     Pose2d driveEstimate = drive.getPoseEstimate();
-                    Vector2d inputEstimate = driveInput.vec().times(deltaTime);
+                    Vector2d inputEstimate = driveInput.vec().times(deltaTime).times(DriveConstants.MAX_VEL).rotated(driveEstimate.getHeading());
                     Box robotBounds = new Box(new Pose2d(driveEstimate.vec().plus(inputEstimate), driveEstimate.getHeading()), 18, 18);
 
                     Vector2d collisionVec = FieldConstants.collision.checkBox(robotBounds);
 
                     if(collisionVec != null) {
-                        driveInput = driveInput.plus(new Pose2d(
-                                collisionVec.div(collisionVec.norm()).times(driveInput.vec().norm()),
-                                0
-                        ));
-                    }
+                        double heading = drive.getRawExternalHeading();
+                        Vector2d input = driveInput.vec().rotated(heading);
 
+                        Vector2d collisionNorm = new Vector2d(-Math.abs(collisionVec.getX()), collisionVec.getY());
+
+                        driveInput = new Pose2d(
+                                collisionNorm.div(collisionNorm.norm()).times(input.norm()).plus(input).rotated(-heading),
+                                driveInput.getHeading()
+                        );
+                        telemetry.addData("Collision", "X: %.2f | Y: %.2f", collisionVec.getX(), collisionVec.getY());
+                    }
                     if(!drive.isBusy()) {
                         drive.setWeightedDrivePower(driveInput);
                     }
@@ -159,18 +167,17 @@ public class TeleOpMain extends LinearOpMode {
 
                     bot.setSlidePower(placer.r_trigger - placer.l_trigger);
 
-                    Vector2d placerDrive = new Vector2d(
-                            placer.l_stick_y * 0.2,
-                            placer.l_stick_x * 0.2
-                    );
-
-                    switch(side){
-                        case RED:
-                            placerDrive = placerDrive.rotated(Math.toRadians(90));
-                            break;
-                        case BLUE:
-                            placerDrive = placerDrive.rotated(-Math.toRadians(90));
-                            break;
+                    Vector2d placerDrive = null;
+                    if(side == Side.RED) {
+                        placerDrive = new Vector2d(
+                                placer.l_stick_x * 0.2,
+                                -placer.l_stick_y * 0.2
+                        );
+                    } else {
+                        placerDrive = new Vector2d(
+                                -placer.l_stick_x * 0.2,
+                                placer.l_stick_y * 0.2
+                        );
                     }
 
                     driveInput = new Pose2d(
@@ -201,9 +208,6 @@ public class TeleOpMain extends LinearOpMode {
 
             //UPDATE------------------
 
-
-            bot.update(this.telemetry);
-
             Pose2d poseEstimate = drive.getPoseEstimate();
 
             telemetry.addData("x", poseEstimate.getX());
@@ -211,7 +215,7 @@ public class TeleOpMain extends LinearOpMode {
             telemetry.addData("pos", bot.getSlidePos());
             telemetry.addData("Dist", bot.getDist());
 
-            telemetry.update();
+            bot.update();
 
             double newTime = time.seconds();
             deltaTime = newTime - lastTime;
