@@ -42,14 +42,14 @@ public class RedBackstage extends LinearOpMode {
     private boolean turning = true;
 
     public Pose2d[] SPIKES = {
-            new Pose2d(32, -36, Math.toRadians(180)),
+            new Pose2d(32, -34, Math.toRadians(180)),
             new Pose2d(11, -37, Math.toRadians(180)),
             new Pose2d(24, -26, Math.toRadians(180))
     };
 
     public double[] BACKDROPS = {
-            -42.75,
-            -30.75,
+            -43,
+            -29,
             -36
     };
 
@@ -159,7 +159,7 @@ public class RedBackstage extends LinearOpMode {
         }
 
         bot.storePose();
-        TeleOpMain.side = TeleOpMain.Side.RED;
+        FieldConstants.side = FieldConstants.Side.RED;
     }
 
 }

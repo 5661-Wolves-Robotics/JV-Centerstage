@@ -37,14 +37,14 @@ public class BlueBackstage extends LinearOpMode {
     private ElapsedTime time = new ElapsedTime();
 
     public Pose2d[] SPIKES = {
-            new Pose2d(32, 36, Math.toRadians(180)),
+            new Pose2d(32, 34, Math.toRadians(180)),
             new Pose2d(11, 37, Math.toRadians(180)),
             new Pose2d(24, 26, Math.toRadians(180))
     };
 
     public double[] BACKDROPS = {
-            30.75,
-            42.75,
+            43,
+            29,
             36
     };
 
@@ -81,7 +81,7 @@ public class BlueBackstage extends LinearOpMode {
                         if (dist >= 2 && dist <= 5) {
                             propPos = 0;
                             telemetry.addLine("Prop at 0");
-                        } else if (dist >= 20 && dist <= 28) {
+                        } else if (dist >= 16 && dist <= 20) {
                             propPos = 1;
                             telemetry.addLine("Prop at 1");
                         } else {
@@ -156,7 +156,7 @@ public class BlueBackstage extends LinearOpMode {
         }
 
         bot.storePose();
-        TeleOpMain.side = TeleOpMain.Side.BLUE;
+        FieldConstants.side = FieldConstants.Side.BLUE;
     }
 
 }

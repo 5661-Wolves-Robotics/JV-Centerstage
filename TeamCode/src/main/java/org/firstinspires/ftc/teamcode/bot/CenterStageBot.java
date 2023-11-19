@@ -9,6 +9,7 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
+import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -46,7 +47,7 @@ public class CenterStageBot extends Robot<Mecanum>{
     //INTAKE
     public DcMotor intake = null;
     public ToggleServo dropdown = null;
-    private static final float LOWERED_DROPDOWN = 0.24f;
+    private static final float LOWERED_DROPDOWN = 0.23f;
     private static final float RAISED_DROPDOWN = 0.66f;
     private boolean dropped = false;
 
@@ -57,9 +58,9 @@ public class CenterStageBot extends Robot<Mecanum>{
 
     public Servo rightArm = null;
     public Servo leftArm = null;
-    public static final float RAISED_ARM = 0.32f;
-    public static final float STORED_ARM = 0.25f;
-    public static final float LOWERED_ARM = 0.18f;
+    public static final float RAISED_ARM = 0.30f;
+    public static final float STORED_ARM = 0.22f;
+    public static final float LOWERED_ARM = 0.16f;
 
     public enum ArmState {
         LOWERED,
@@ -94,7 +95,7 @@ public class CenterStageBot extends Robot<Mecanum>{
     private static final float LAUNCHER_UP = 0.5f;
 
     //RANGE
-    ModernRoboticsI2cRangeSensor rangeSensor = null;
+    Rev2mDistanceSensor rangeSensor = null;
     private static final Vector2d RANGE_POS = new Vector2d(-8.6, 0);
 
     private double prevTime = 0;
@@ -138,7 +139,7 @@ public class CenterStageBot extends Robot<Mecanum>{
         leftArm = hardwareMap.get(Servo.class, "arm1");
         rightArm = hardwareMap.get(Servo.class, "arm2");
 
-        rangeSensor = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "range");
+        rangeSensor = hardwareMap.get(Rev2mDistanceSensor.class, "range");
 
         setArmPos(STORED_ARM);
 
@@ -239,7 +240,7 @@ public class CenterStageBot extends Robot<Mecanum>{
     public void toggleIntake(){
         dropped = !dropped;
         dropdown.toggle();
-        if(dropped) intake.setPower(0.8);
+        if(dropped) intake.setPower(0.7);
         else intake.setPower(0.0);
     }
 
@@ -287,6 +288,7 @@ public class CenterStageBot extends Robot<Mecanum>{
         telemetry.addData("Slide", slidePos);
         updateSlide();
 
+        telemetry.addData("Dist", getDist());
         drive.update();
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
         telemetry.update();

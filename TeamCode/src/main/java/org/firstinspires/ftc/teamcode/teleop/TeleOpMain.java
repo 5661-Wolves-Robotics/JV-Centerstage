@@ -28,11 +28,6 @@ public class TeleOpMain extends LinearOpMode {
     private Gamepad driver = null;
     private Gamepad placer = null;
     public static int RUMBLE_DURATION = 250;
-    public static enum Side {
-        BLUE,
-        RED
-    }
-    public static Side side = Side.RED;
 
     public static PIDCoefficients heading = new PIDCoefficients(5, 0.02, 0.3);
     private PIDFController headingController = new PIDFController(heading);
@@ -45,18 +40,20 @@ public class TeleOpMain extends LinearOpMode {
         DRIVING
     }
 
-    State currState = State.DRIVING;
+    private State currState = State.DRIVING;
 
-    Pose2d driveInput = new Pose2d(0, 0, 0);
+    private Pose2d driveInput = new Pose2d(0, 0, 0);
 
-    ElapsedTime time = new ElapsedTime();
-    double lastTime = 0;
-    double deltaTime = 0;
+    private ElapsedTime time = new ElapsedTime();
+    private double lastTime = 0;
+    private double deltaTime = 0;
+
+    private boolean colliding = true;
 
     @Override
     public void runOpMode() throws InterruptedException {
 
-        bot.init(hardwareMap, Robot.getStoredPose(), new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry()));
+        bot.init(hardwareMap, new Pose2d(48, 0, Math.toRadians(180)), new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry()));
         Mecanum drive = bot.getDrive();
 
         driver = new Gamepad(gamepad1);
@@ -68,7 +65,6 @@ public class TeleOpMain extends LinearOpMode {
         waitForStart();
 
         time.reset();
-        side = Side.RED;
 
         while(opModeIsActive()){
 
@@ -86,14 +82,13 @@ public class TeleOpMain extends LinearOpMode {
                             -driver.r_stick_x
                     );
 
-                    if (driver.getButtonState(Gamepad.Button.X) == Gamepad.ButtonState.PRESSED) {
+                    if (driver.getButtonState(Gamepad.Button.X) == Gamepad.ButtonState.PRESSED)
                         bot.toggleIntake();
-                    }
 
                     if (driver.getButtonState(Gamepad.Button.B) == Gamepad.ButtonState.PRESSED) {
                         bot.intake.setPower(-1.0);
                     } else if (driver.getButtonState(Gamepad.Button.B) == Gamepad.ButtonState.RELEASED) {
-                        if(bot.isIntakeDropped()) bot.intake.setPower(0.8);
+                        if(bot.isIntakeDropped()) bot.intake.setPower(0.7);
                         else bot.intake.setPower(0.0);
                     }
 
@@ -107,19 +102,11 @@ public class TeleOpMain extends LinearOpMode {
                         if(bot.isIntakeDropped()) bot.toggleIntake();
                     }
 
-                    if(placer.getButtonState(Gamepad.Button.Y) == Gamepad.ButtonState.PRESSED) {
+                    if (driver.getButtonState(Gamepad.Button.R_BUMPER) == Gamepad.ButtonState.PRESSED)
+                        colliding = !colliding;
+
+                    if(placer.getButtonState(Gamepad.Button.Y) == Gamepad.ButtonState.PRESSED)
                         bot.launchPlane();
-                    }
-
-                    if(placer.getButtonState(Gamepad.Button.DPAD_UP) == Gamepad.ButtonState.PRESSED) {
-                        if(bot.getArmState() == CenterStageBot.ArmState.LOWERED) bot.setArmState(CenterStageBot.ArmState.STORED);
-                        else bot.setArmState(CenterStageBot.ArmState.RAISED);
-                    }
-
-                    if(placer.getButtonState(Gamepad.Button.DPAD_DOWN) == Gamepad.ButtonState.PRESSED) {
-                        if(bot.getArmState() == CenterStageBot.ArmState.RAISED) bot.setArmState(CenterStageBot.ArmState.STORED);
-                        else bot.setArmState(CenterStageBot.ArmState.LOWERED);
-                    }
 
                     if(placer.getButtonState(Gamepad.Button.A) == Gamepad.ButtonState.PRESSED) {
                         bot.claw.toggle();
@@ -133,7 +120,7 @@ public class TeleOpMain extends LinearOpMode {
 
                     Vector2d collisionVec = FieldConstants.collision.checkBox(robotBounds);
 
-                    if(collisionVec != null) {
+                    if(collisionVec != null && colliding) {
                         double heading = drive.getRawExternalHeading();
                         Vector2d input = driveInput.vec().rotated(heading);
 
@@ -153,30 +140,18 @@ public class TeleOpMain extends LinearOpMode {
                 }
                 case PLACING: {
 
-                    /*
-                    double dpadY = (placer.isActive(Gamepad.Button.DPAD_UP) ? 1 : 0) + (placer.isActive(Gamepad.Button.DPAD_DOWN) ? -1 : 0);
-
-                    bot.setSlidePower(dpadY);
-
-                    driveInput = new Pose2d(
-                            dpadY * X_RATIO,
-                            placer.l_stick_x * 0.2,
-                            (headingController.update(drive.getPoseEstimate().getHeading()) * DriveConstants.kV) * DriveConstants.TRACK_WIDTH
-                    );
-                     */
-
                     bot.setSlidePower(placer.r_trigger - placer.l_trigger);
 
                     Vector2d placerDrive = null;
-                    if(side == Side.RED) {
+                    if(FieldConstants.side == FieldConstants.Side.RED) {
                         placerDrive = new Vector2d(
-                                placer.l_stick_x * 0.2,
-                                -placer.l_stick_y * 0.2
+                                placer.l_stick_y * 0.2,
+                                placer.l_stick_x * 0.2
                         );
                     } else {
                         placerDrive = new Vector2d(
-                                -placer.l_stick_x * 0.2,
-                                placer.l_stick_y * 0.2
+                                placer.l_stick_y * 0.2,
+                                placer.l_stick_x * 0.2
                         );
                     }
 
@@ -193,17 +168,27 @@ public class TeleOpMain extends LinearOpMode {
                         currState = State.DRIVING;
                     }
 
-                    if(placer.getButtonState(Gamepad.Button.X) == Gamepad.ButtonState.PRESSED) {
+                    if(placer.getButtonState(Gamepad.Button.DPAD_DOWN) == Gamepad.ButtonState.PRESSED) {
                         if(bot.getArmState() == CenterStageBot.ArmState.LOWERED) bot.setArmState(CenterStageBot.ArmState.STORED);
                         else bot.setArmState(CenterStageBot.ArmState.LOWERED);
                     }
 
                     if(!drive.isBusy()) {
-                        drive.setFieldCentricWeightedDrivePower(driveInput);
+                        drive.setWeightedDrivePower(driveInput);
                     }
 
                     break;
                 }
+            }
+
+            if(placer.getButtonState(Gamepad.Button.DPAD_UP) == Gamepad.ButtonState.PRESSED) {
+                if(bot.getArmState() == CenterStageBot.ArmState.LOWERED) bot.setArmState(CenterStageBot.ArmState.STORED);
+                else bot.setArmState(CenterStageBot.ArmState.RAISED);
+            }
+
+            if(placer.getButtonState(Gamepad.Button.DPAD_DOWN) == Gamepad.ButtonState.PRESSED) {
+                if(bot.getArmState() == CenterStageBot.ArmState.RAISED) bot.setArmState(CenterStageBot.ArmState.STORED);
+                else bot.setArmState(CenterStageBot.ArmState.LOWERED);
             }
 
             //UPDATE------------------
@@ -213,7 +198,6 @@ public class TeleOpMain extends LinearOpMode {
             telemetry.addData("x", poseEstimate.getX());
             telemetry.addData("y", poseEstimate.getY());
             telemetry.addData("pos", bot.getSlidePos());
-            telemetry.addData("Dist", bot.getDist());
 
             bot.update();
 

@@ -43,8 +43,8 @@ public class BlueFrontstage extends LinearOpMode {
     private ElapsedTime time = new ElapsedTime();
 
     private Pose2d[] SPIKES = {
-            new Pose2d(-38, 36, Math.toRadians(270)),
-            new Pose2d(-46, 42, Math.toRadians(270)),
+            new Pose2d(-39, 34, Math.toRadians(270)),
+            new Pose2d(-47, 42, Math.toRadians(270)),
             new Pose2d(-32, 36, Math.toRadians(0))
     };
 
@@ -55,8 +55,8 @@ public class BlueFrontstage extends LinearOpMode {
 
     public double[] BACKDROPS = {
             36,
-            30.75,
-            41.41
+            29,
+            40
     };
 
     double placeTime = 0;
@@ -72,7 +72,7 @@ public class BlueFrontstage extends LinearOpMode {
         drive = bot.getDrive();
 
         TrajectorySequence prep = drive.trajectorySequenceBuilder(drive.getPoseEstimate())
-                .lineToConstantHeading(new Vector2d(-36, 48))
+                .lineToConstantHeading(new Vector2d(-36, 44))
                 .waitSeconds(SPIKE_WAIT)
                 .build();
 
@@ -108,7 +108,7 @@ public class BlueFrontstage extends LinearOpMode {
                         .splineTo(new Vector2d(44, 12), 0)
                         .build(),
                 drive.trajectorySequenceBuilder(trajectories[1].end())
-                        .strafeLeft(12)
+                        .strafeLeft(11)
                         .forward(30)
                         .splineTo(new Vector2d(44, 12), 0)
                         .build(),
@@ -120,30 +120,54 @@ public class BlueFrontstage extends LinearOpMode {
         };
 
         waitForStart();
-
-        time.reset();
         boolean parked = false;
 
         //Go off wall
         drive.followTrajectorySequence(prep);
+
+        double dist = 0;
+        boolean detected = false;
+
+        time.reset();
 
         while(opModeIsActive()){
 
             if(!parked) {
                 switch (state) {
                     case PROP_DETECTION: {
-                        if(!(bot.getDist() <= 11 && bot.getDist() >= 7)){
-                            telemetry.addData("Dist", bot.getDist());
-                            telemetry.update();
-                            propPos++;
-                            drive.followTrajectorySequence(next);
-                            if(!(bot.getDist() <= 10 && bot.getDist() >= 4)) propPos++;
+                        switch(propPos){
+                            case 0: {
+                                if (bot.getDist() <= 11 && bot.getDist() >= 9) {
+                                    detected = true;
+                                    break;
+                                }
+                                if (time.milliseconds() >= 1200) {
+                                    drive.followTrajectorySequence(next);
+                                    time.reset();
+                                    propPos++;
+                                }
+                                break;
+                            }
+                            case 1:{
+                                if(bot.getDist() <= 10 && bot.getDist() >= 4){
+                                    detected = true;
+                                    break;
+                                }
+                                if(time.milliseconds() >= 1200){
+                                    time.reset();
+                                    propPos++;
+                                    detected = true;
+                                }
+                                break;
+                            }
                         }
 
-                        drive.followTrajectorySequence(trajectories[propPos]);
-                        bot.intake.setPower(0);
+                        if(detected) {
+                            drive.followTrajectorySequence(trajectories[propPos]);
+                            bot.intake.setPower(0);
 
-                        state = State.PLACING_BACKDROP_PIXEL;
+                            state = State.PLACING_BACKDROP_PIXEL;
+                        }
                         break;
                     }
                     case PLACING_BACKDROP_PIXEL: {
@@ -168,14 +192,20 @@ public class BlueFrontstage extends LinearOpMode {
                         }
                         if(num != 0) {
                             yAvg /= num;
+                            double yDiff = 36 - yAvg;
+
+                            drive.followTrajectoryAsync(drive.trajectoryBuilder(drive.getPoseEstimate())
+                                    .lineToLinearHeading(new Pose2d(55, BACKDROPS[propPos] + yDiff, Math.toRadians(180)), Mecanum.getVelocityConstraint(25, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), Mecanum.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
+                                    .build()
+                            );
+                        } else {
+                            drive.followTrajectoryAsync(drive.trajectoryBuilder(drive.getPoseEstimate())
+                                    .lineToLinearHeading(new Pose2d(55, BACKDROPS[propPos], Math.toRadians(180)), Mecanum.getVelocityConstraint(25, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), Mecanum.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
+                                    .build()
+                            );
                         }
 
-                        double yDiff = 36 - yAvg;
 
-                        drive.followTrajectoryAsync(drive.trajectoryBuilder(drive.getPoseEstimate())
-                                .lineToLinearHeading(new Pose2d(55, BACKDROPS[propPos] + yDiff, Math.toRadians(180)), Mecanum.getVelocityConstraint(25, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), Mecanum.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
-                                .build()
-                        );
                         bot.setSlidePos(1200);
 
                         state = State.PLACING;
@@ -220,7 +250,7 @@ public class BlueFrontstage extends LinearOpMode {
         }
 
         bot.storePose();
-        TeleOpMain.side = TeleOpMain.Side.BLUE;
+        FieldConstants.side = FieldConstants.Side.BLUE;
     }
 
 }

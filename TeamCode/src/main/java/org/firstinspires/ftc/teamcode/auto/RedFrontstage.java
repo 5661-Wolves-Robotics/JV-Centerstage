@@ -43,9 +43,9 @@ public class RedFrontstage extends LinearOpMode {
     private ElapsedTime time = new ElapsedTime();
 
     private Pose2d[] SPIKES = {
-            new Pose2d(-37, -36, Math.toRadians(90)),
-            new Pose2d(-46, -42, Math.toRadians(90)),
-            new Pose2d(-36, -36, Math.toRadians(0))
+            new Pose2d(-39, -34, Math.toRadians(90)),
+            new Pose2d(-47, -42, Math.toRadians(90)),
+            new Pose2d(-32, -36, Math.toRadians(0))
     };
 
     private final double SPIKE_WAIT = 0.1;
@@ -55,8 +55,8 @@ public class RedFrontstage extends LinearOpMode {
 
     public double[] BACKDROPS = {
             -36,
-            -41.41,
-            -30.75
+            -29,
+            -40
     };
 
     double placeTime = 0;
@@ -72,7 +72,7 @@ public class RedFrontstage extends LinearOpMode {
         drive = bot.getDrive();
 
         TrajectorySequence prep = drive.trajectorySequenceBuilder(drive.getPoseEstimate())
-                .lineToConstantHeading(new Vector2d(-36, -48))
+                .lineToConstantHeading(new Vector2d(-36, -44))
                 .waitSeconds(SPIKE_WAIT)
                 .build();
 
@@ -86,7 +86,7 @@ public class RedFrontstage extends LinearOpMode {
         for(int i = 0; i < 2; i++){
             trajectories[i] = drive.trajectorySequenceBuilder(prep.end())
                     .lineToLinearHeading(SPIKES[i])
-                    .addTemporalMarker(2.0, ()->{bot.intake.setPower(INTAKE_POWER);})
+                    .addTemporalMarker(1.7, ()->{bot.intake.setPower(INTAKE_POWER);})
                     .waitSeconds(1)
                     .back(7)
                     .build();
@@ -108,7 +108,7 @@ public class RedFrontstage extends LinearOpMode {
                         .splineTo(new Vector2d(48, -12), 0)
                         .build(),
                 drive.trajectorySequenceBuilder(trajectories[1].end())
-                        .strafeRight(12)
+                        .strafeRight(11)
                         .forward(30)
                         .splineTo(new Vector2d(48, -12), 0)
                         .build(),
@@ -120,29 +120,53 @@ public class RedFrontstage extends LinearOpMode {
         };
 
         waitForStart();
-
-        time.reset();
         boolean parked = false;
+
+        boolean detected = false;
 
         //Go off wall
         drive.followTrajectorySequence(prep);
+
+        time.reset();
 
         while(opModeIsActive()){
 
             if(!parked) {
                 switch (state) {
                     case PROP_DETECTION: {
-                        if(!(bot.getDist() <= 11 && bot.getDist() >= 7)){
-                            propPos++;
-                            drive.followTrajectorySequence(next);
-                            if(!(bot.getDist() <= 10 && bot.getDist() >= 4)) propPos++;
+                        switch(propPos){
+                            case 0: {
+                                if (bot.getDist() <= 11 && bot.getDist() >= 9) {
+                                    detected = true;
+                                    break;
+                                }
+                                if (time.milliseconds() >= 1200) {
+                                    drive.followTrajectorySequence(next);
+                                    time.reset();
+                                    propPos++;
+                                }
+                                break;
+                            }
+                            case 1:{
+                                if(bot.getDist() <= 10 && bot.getDist() >= 4){
+                                    detected = true;
+                                    break;
+                                }
+                                if(time.milliseconds() >= 1200){
+                                    time.reset();
+                                    propPos++;
+                                    detected = true;
+                                }
+                                break;
+                            }
                         }
 
-                        drive.followTrajectorySequence(trajectories[propPos]);
-                        bot.intake.setPower(0);
+                        if(detected) {
+                            drive.followTrajectorySequence(trajectories[propPos]);
+                            bot.intake.setPower(0);
 
-                        state = State.PLACING_BACKDROP_PIXEL;
-                        break;
+                            state = State.PLACING_BACKDROP_PIXEL;
+                        }
                     }
                     case PLACING_BACKDROP_PIXEL: {
                         bot.claw.toggle();
@@ -166,14 +190,20 @@ public class RedFrontstage extends LinearOpMode {
                         }
                         if(num != 0) {
                             yAvg /= num;
+                            double yDiff = -36 - yAvg;
+
+                            drive.followTrajectoryAsync(drive.trajectoryBuilder(drive.getPoseEstimate())
+                                    .lineToLinearHeading(new Pose2d(55, BACKDROPS[propPos] + yDiff, Math.toRadians(180)), Mecanum.getVelocityConstraint(25, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), Mecanum.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
+                                    .build()
+                            );
+                        } else {
+                            drive.followTrajectoryAsync(drive.trajectoryBuilder(drive.getPoseEstimate())
+                                    .lineToLinearHeading(new Pose2d(55, BACKDROPS[propPos], Math.toRadians(180)), Mecanum.getVelocityConstraint(25, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), Mecanum.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
+                                    .build()
+                            );
                         }
 
-                        double yDiff = -36 - yAvg;
 
-                        drive.followTrajectoryAsync(drive.trajectoryBuilder(drive.getPoseEstimate())
-                                .lineToLinearHeading(new Pose2d(55, BACKDROPS[propPos] + yDiff, Math.toRadians(180)), Mecanum.getVelocityConstraint(25, DriveConstants.MAX_ANG_VEL, DriveConstants.TRACK_WIDTH), Mecanum.getAccelerationConstraint(DriveConstants.MAX_ACCEL))
-                                .build()
-                        );
                         bot.setSlidePos(1200);
 
                         state = State.PLACING;
@@ -218,7 +248,7 @@ public class RedFrontstage extends LinearOpMode {
         }
 
         bot.storePose();
-        TeleOpMain.side = TeleOpMain.Side.RED;
+        FieldConstants.side = FieldConstants.Side.RED;
     }
 
 }
