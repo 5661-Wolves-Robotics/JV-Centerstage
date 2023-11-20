@@ -12,7 +12,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.bot.CenterStageBot;
-import org.firstinspires.ftc.teamcode.bot.Robot;
 import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.drive.FieldConstants;
 import org.firstinspires.ftc.teamcode.drive.Mecanum;
@@ -59,6 +58,8 @@ public class TeleOpMain extends LinearOpMode {
         driver = new Gamepad(gamepad1);
         placer = new Gamepad(gamepad2);
 
+        bindButtons();
+
         headingController.setInputBounds(-Math.PI, Math.PI);
         headingController.setTargetPosition(Math.toRadians(180));
 
@@ -68,8 +69,8 @@ public class TeleOpMain extends LinearOpMode {
 
         while(opModeIsActive()){
 
-            driver.getInput();
-            placer.getInput();
+            driver.update();
+            placer.update();
 
             //DRIVER-----------
 
@@ -81,36 +82,6 @@ public class TeleOpMain extends LinearOpMode {
                             -driver.l_stick_x,
                             -driver.r_stick_x
                     );
-
-                    if (driver.getButtonState(Gamepad.Button.X) == Gamepad.ButtonState.PRESSED)
-                        bot.toggleIntake();
-
-                    if (driver.getButtonState(Gamepad.Button.B) == Gamepad.ButtonState.PRESSED) {
-                        bot.intake.setPower(-1.0);
-                    } else if (driver.getButtonState(Gamepad.Button.B) == Gamepad.ButtonState.RELEASED) {
-                        if(bot.isIntakeDropped()) bot.intake.setPower(0.7);
-                        else bot.intake.setPower(0.0);
-                    }
-
-                    if (driver.getButtonState(Gamepad.Button.A) == Gamepad.ButtonState.PRESSED && bot.getSlidePos() < 100) {
-                        currState = State.PLACING;
-
-                        placer.rumble(RUMBLE_DURATION);
-
-                        bot.claw.toggle();
-
-                        if(bot.isIntakeDropped()) bot.toggleIntake();
-                    }
-
-                    if (driver.getButtonState(Gamepad.Button.R_BUMPER) == Gamepad.ButtonState.PRESSED)
-                        colliding = !colliding;
-
-                    if(placer.getButtonState(Gamepad.Button.Y) == Gamepad.ButtonState.PRESSED)
-                        bot.launchPlane();
-
-                    if(placer.getButtonState(Gamepad.Button.A) == Gamepad.ButtonState.PRESSED) {
-                        bot.claw.toggle();
-                    }
 
                     bot.setSlidePower(placer.r_trigger - placer.l_trigger);
 
@@ -132,6 +103,7 @@ public class TeleOpMain extends LinearOpMode {
                         );
                         telemetry.addData("Collision", "X: %.2f | Y: %.2f", collisionVec.getX(), collisionVec.getY());
                     }
+
                     if(!drive.isBusy()) {
                         drive.setWeightedDrivePower(driveInput);
                     }
@@ -160,35 +132,12 @@ public class TeleOpMain extends LinearOpMode {
                             (headingController.update(drive.getPoseEstimate().getHeading()) * DriveConstants.kV) * DriveConstants.TRACK_WIDTH
                     );
 
-                    if (placer.getButtonState(Gamepad.Button.A) == Gamepad.ButtonState.PRESSED) {
-                        bot.claw.toggle();
-                        bot.retractSlide(150);
-
-                        driver.rumble(RUMBLE_DURATION);
-                        currState = State.DRIVING;
-                    }
-
-                    if(placer.getButtonState(Gamepad.Button.DPAD_DOWN) == Gamepad.ButtonState.PRESSED) {
-                        if(bot.getArmState() == CenterStageBot.ArmState.LOWERED) bot.setArmState(CenterStageBot.ArmState.STORED);
-                        else bot.setArmState(CenterStageBot.ArmState.LOWERED);
-                    }
-
                     if(!drive.isBusy()) {
                         drive.setWeightedDrivePower(driveInput);
                     }
 
                     break;
                 }
-            }
-
-            if(placer.getButtonState(Gamepad.Button.DPAD_UP) == Gamepad.ButtonState.PRESSED) {
-                if(bot.getArmState() == CenterStageBot.ArmState.LOWERED) bot.setArmState(CenterStageBot.ArmState.STORED);
-                else bot.setArmState(CenterStageBot.ArmState.RAISED);
-            }
-
-            if(placer.getButtonState(Gamepad.Button.DPAD_DOWN) == Gamepad.ButtonState.PRESSED) {
-                if(bot.getArmState() == CenterStageBot.ArmState.RAISED) bot.setArmState(CenterStageBot.ArmState.STORED);
-                else bot.setArmState(CenterStageBot.ArmState.LOWERED);
             }
 
             //UPDATE------------------
@@ -205,6 +154,44 @@ public class TeleOpMain extends LinearOpMode {
             deltaTime = newTime - lastTime;
             lastTime = newTime;
         }
+    }
+
+    private void bindButtons(){
+        //DRIVER BUTTONS
+        driver.bind(Gamepad.Button.X, Gamepad.ButtonState.PRESSED, ()->bot.toggleIntake());
+        driver.bind(Gamepad.Button.B, Gamepad.ButtonState.PRESSED, ()->bot.intake.setPower(-1.0f));
+        driver.bind(Gamepad.Button.B, Gamepad.ButtonState.RELEASED, ()->{
+            if(bot.isIntakeDropped()) bot.intake.setPower(CenterStageBot.INTAKE_POWER);
+            else bot.intake.setPower(0.0);
+        });
+        driver.bind(Gamepad.Button.A, Gamepad.ButtonState.PRESSED, ()->{
+            currState = State.PLACING;
+            placer.rumble(RUMBLE_DURATION);
+            bot.claw.toggle();
+            if(bot.isIntakeDropped()) bot.toggleIntake();
+        });
+        driver.bind(Gamepad.Button.R_BUMPER, Gamepad.ButtonState.PRESSED, ()->{colliding = !colliding;});
+
+        //PLACER BUTTONS
+
+        placer.bind(Gamepad.Button.Y, Gamepad.ButtonState.PRESSED, ()->bot.launchPlane());
+        placer.bind(Gamepad.Button.A, Gamepad.ButtonState.PRESSED, ()->{
+            bot.claw.toggle();
+            if(currState == State.PLACING){
+                bot.retractSlide(150);
+
+                driver.rumble(RUMBLE_DURATION);
+                currState = State.DRIVING;
+            }
+        });
+        placer.bind(Gamepad.Button.DPAD_UP, Gamepad.ButtonState.PRESSED, ()->{
+            if(bot.getArmState() == CenterStageBot.ArmState.LOWERED) bot.setArmState(CenterStageBot.ArmState.STORED);
+            else bot.setArmState(CenterStageBot.ArmState.RAISED);
+        });
+        placer.bind(Gamepad.Button.DPAD_DOWN, Gamepad.ButtonState.PRESSED, ()->{
+            if(bot.getArmState() == CenterStageBot.ArmState.RAISED) bot.setArmState(CenterStageBot.ArmState.STORED);
+            else bot.setArmState(CenterStageBot.ArmState.LOWERED);
+        });
     }
 
 }

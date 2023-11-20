@@ -21,8 +21,10 @@ import com.qualcomm.robotcore.util.Range;
 import org.checkerframework.checker.units.qual.C;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.drive.Mecanum;
+import org.firstinspires.ftc.teamcode.opencv.pipeline.CenterStagePipeline;
 import org.firstinspires.ftc.teamcode.teleop.TeleOpMain;
 import org.firstinspires.ftc.teamcode.util.CameraStream;
 import org.firstinspires.ftc.teamcode.util.motor.LimitedMotor;
@@ -31,6 +33,10 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import org.openftc.easyopencv.OpenCvCamera;
+import org.openftc.easyopencv.OpenCvCameraFactory;
+import org.openftc.easyopencv.OpenCvCameraRotation;
+import org.openftc.easyopencv.OpenCvWebcam;
 
 import java.util.List;
 
@@ -38,7 +44,9 @@ import java.util.List;
 public class CenterStageBot extends Robot<Mecanum>{
 
     //CAMERA
-    private CameraName cam = null;
+    private WebcamName cam = null;
+    private OpenCvWebcam openCvWebcam = null;
+    private CenterStagePipeline pipeline = null;
 
     private VisionPortal vision;
     private AprilTagProcessor aprilTagProcessor;
@@ -50,6 +58,8 @@ public class CenterStageBot extends Robot<Mecanum>{
     private static final float LOWERED_DROPDOWN = 0.23f;
     private static final float RAISED_DROPDOWN = 0.66f;
     private boolean dropped = false;
+
+    public static final double INTAKE_POWER = 0.8;
 
     //CLAW
     public ToggleServo claw = null;
@@ -143,9 +153,10 @@ public class CenterStageBot extends Robot<Mecanum>{
 
         setArmPos(STORED_ARM);
 
-        cam = hardwareMap.get(CameraName.class, "Camera");
+        cam = hardwareMap.get(WebcamName.class, "Camera");
 
         initAprilTag();
+        initOpenCV(hardwareMap);
 
         time.reset();
     }
@@ -157,14 +168,35 @@ public class CenterStageBot extends Robot<Mecanum>{
                 .build();
 
         cameraStream = new CameraStream();
-
+/*
         vision = new VisionPortal.Builder()
                 .setCamera(cam)
                 .addProcessor(cameraStream)
                 .addProcessor(aprilTagProcessor)
                 .build();
+ */
 
         FtcDashboard.getInstance().startCameraStream(cameraStream, 0);
+    }
+
+    private void initOpenCV(HardwareMap hardwareMap){
+        int monitorID = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        openCvWebcam = OpenCvCameraFactory.getInstance().createWebcam(cam, monitorID);
+
+        pipeline = new CenterStagePipeline();
+        openCvWebcam.setPipeline(pipeline);
+
+        openCvWebcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
+            @Override
+            public void onOpened() {
+                openCvWebcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
+            }
+
+            @Override
+            public void onError(int errorCode) {
+
+            }
+        });
     }
 
     public void setSlidePower(double pow){
@@ -240,7 +272,7 @@ public class CenterStageBot extends Robot<Mecanum>{
     public void toggleIntake(){
         dropped = !dropped;
         dropdown.toggle();
-        if(dropped) intake.setPower(0.7);
+        if(dropped) intake.setPower(INTAKE_POWER);
         else intake.setPower(0.0);
     }
 
@@ -280,18 +312,26 @@ public class CenterStageBot extends Robot<Mecanum>{
     public void update() {
         TelemetryPacket packet = new TelemetryPacket();
 
+        //TELEMETRY
+
         Pose2d poseEstimate = drive.getPoseEstimate();
         Vector2d distPoint = RANGE_POS.plus(new Vector2d(-getDist(), 0)).rotated(poseEstimate.getHeading()).plus(poseEstimate.vec());
 
         packet.fieldOverlay().fillCircle(distPoint.getX(), distPoint.getY(), 2);
 
         telemetry.addData("Slide", slidePos);
-        updateSlide();
-
         telemetry.addData("Dist", getDist());
+
+        telemetry.addData("CV Analysis", pipeline.getPosition());
+
+        //UPDATE
+
+        updateSlide();
         drive.update();
         FtcDashboard.getInstance().sendTelemetryPacket(packet);
         telemetry.update();
+
+        //TIME UPDATE
 
         double newTime = time.seconds();
         deltaTime = newTime - prevTime;

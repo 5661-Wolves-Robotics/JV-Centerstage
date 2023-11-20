@@ -1,13 +1,28 @@
 package org.firstinspires.ftc.teamcode.util;
 
-import com.qualcomm.robotcore.robocol.RobocolParsable;
-import com.qualcomm.robotcore.util.TypeConversion;
-
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class Gamepad{
+
+    public interface ButtonFunc{
+        void run();
+    }
+
+    public class ButtonCallback{
+        Map<ButtonState, ButtonFunc> functions = new HashMap<>();
+
+        public ButtonCallback(ButtonState state, ButtonFunc func){
+            functions.put(state, func);
+        }
+
+        public void setFunction(ButtonState state, ButtonFunc func){ functions.put(state, func); }
+        public void update(ButtonState state){
+            ButtonFunc func = functions.get(state);
+            if(func != null) func.run();
+        }
+    }
 
     com.qualcomm.robotcore.hardware.Gamepad gamepad = null;
 
@@ -50,6 +65,7 @@ public class Gamepad{
     }
 
     private Map<Button, ButtonState> buttons = new HashMap<>();
+    private Map<Button, ButtonCallback> buttonFuncs =  new HashMap<>();
 
     public Gamepad(com.qualcomm.robotcore.hardware.Gamepad gamepad) {
         this.gamepad = gamepad;
@@ -60,7 +76,7 @@ public class Gamepad{
         }
     }
 
-    public void getInput()
+    public void update()
     {
         buttons.put(Button.R_BUMPER, updateState(buttons.get(Button.R_BUMPER), gamepad.right_bumper));
         buttons.put(Button.L_BUMPER, updateState(buttons.get(Button.L_BUMPER), gamepad.left_bumper));
@@ -88,6 +104,10 @@ public class Gamepad{
 
         r_trigger = gamepad.right_trigger;
         l_trigger = gamepad.left_trigger;
+
+        for(Map.Entry<Button,ButtonCallback> button : buttonFuncs.entrySet()){
+            button.getValue().update(getButtonState(button.getKey()));
+        }
     }
 
     public void rumble(int ms)
@@ -112,6 +132,15 @@ public class Gamepad{
             } else {
                 return ButtonState.INACTIVE;
             }
+        }
+    }
+
+    public void bind(Button button, ButtonState state, ButtonFunc func){
+        ButtonCallback callback = buttonFuncs.get(button);
+        if(callback == null){
+            buttonFuncs.put(button, new ButtonCallback(state, func));
+        } else {
+            callback.setFunction(state, func);
         }
     }
 
