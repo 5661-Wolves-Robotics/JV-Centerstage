@@ -7,21 +7,6 @@ import com.qualcomm.robotcore.hardware.DcMotorImplEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
 
-/*
-public interface LimitedMotor extends DcMotorEx{
-
-    @Override
-    void setPower(double power);
-
-    @Override
-    void setDirection(Direction direction);
-
-    void setLimits(int min, int max);
-
-    void moveToMin();
-}
-*/
-
 public class LimitedMotor{
 
     private DcMotorEx motor;
@@ -81,29 +66,10 @@ public class LimitedMotor{
         return ((double)(motor.getCurrentPosition() - min)) / (max - min);
     }
 
-    public int getIntPosition()
-    {
-        return motor.getCurrentPosition();
-    }
-
-    public boolean getTargetSide()
-    {
-        return negative;
-    }
-
-    public void setPosition(int pos)
+    public void setTargetPosition(int pos)
     {
         motor.setTargetPosition(Range.clip(pos, min, max));
-    }
-
-    public void moveToMin(){
-        motor.setTargetPosition(min);
-        motor.setPower(1.0f);
-    }
-
-    public void moveToPosition(int pos){
-        motor.setTargetPosition(pos);
-        motor.setPower(1.0f);
+        motor.setPower(1);
     }
 
     public boolean isBusy(){

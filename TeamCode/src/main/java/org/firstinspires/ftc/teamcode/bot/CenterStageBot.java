@@ -23,6 +23,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.bot.subsystems.DualLinearSlide;
 import org.firstinspires.ftc.teamcode.drive.Mecanum;
 import org.firstinspires.ftc.teamcode.opencv.pipeline.CenterStagePipeline;
 import org.firstinspires.ftc.teamcode.teleop.TeleOpMain;
@@ -45,7 +46,6 @@ public class CenterStageBot extends Robot<Mecanum>{
 
     //CAMERA
     private WebcamName cam = null;
-    private OpenCvWebcam openCvWebcam = null;
     private CenterStagePipeline pipeline = null;
 
     private VisionPortal vision;
@@ -81,23 +81,7 @@ public class CenterStageBot extends Robot<Mecanum>{
     private ArmState armState = ArmState.STORED;
 
     //SLIDE
-    public DcMotorEx leftSlide = null;
-    public DcMotorEx rightSlide = null;
-    private static final int MAX_SLIDE_EXTENSION = 4300;
-    private static final float SLIDE_STATIC = 0.1f;
-    private double slidePos = 0;
-    private final double SLIDE_TPR = 537.7;
-    private final double SLIDE_RPM = 312;
-
-    public enum SlideState {
-        IDLE,
-        EXTENDING,
-        RETRACTING,
-        STORING
-    }
-    private SlideState slideState = SlideState.IDLE;
-    private double retractTime = 0;
-    private double slideDelay = 0;
+    DualLinearSlide slide = null;
 
     //LAUNCHER
     public ToggleServo launcher = null;
@@ -115,27 +99,17 @@ public class CenterStageBot extends Robot<Mecanum>{
 
     @Override
     public void init(HardwareMap hardwareMap, Pose2d pose, MultipleTelemetry telemetry){
-        super.init(hardwareMap, new Mecanum(hardwareMap), pose, telemetry);
+        super.init(new Mecanum(hardwareMap), pose, telemetry);
 
         drive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+/*
+        slide = new DualLinearSlide(
+                hardwareMap.get(DcMotorEx.class, "rightSlide"),
+                hardwareMap.get(DcMotorEx.class, "leftSlide"),
+                4300
+        );
 
-        leftSlide = hardwareMap.get(DcMotorEx.class, "leftSlide");
-        leftSlide.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftSlide.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        rightSlide = hardwareMap.get(DcMotorEx.class, "rightSlide");
-        rightSlide.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightSlide.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        leftSlide.setTargetPosition((int)slidePos);
-        rightSlide.setTargetPosition((int)slidePos);
-
-        leftSlide.setPower(1.0);
-        rightSlide.setPower(1.0);
-
-        rightSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        leftSlide.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+ */
 
         intake = hardwareMap.get(DcMotor.class, "perpendicularEncoder");
 
@@ -151,65 +125,33 @@ public class CenterStageBot extends Robot<Mecanum>{
 
         rangeSensor = hardwareMap.get(Rev2mDistanceSensor.class, "range");
 
-        setArmPos(STORED_ARM);
+        //setArmPos(STORED_ARM);
 
         cam = hardwareMap.get(WebcamName.class, "Camera");
 
-        initAprilTag();
-        initOpenCV(hardwareMap);
-
-        time.reset();
+        initCam();
     }
 
-    private void initAprilTag(){
+    private void initCam(){
         aprilTagProcessor = new AprilTagProcessor.Builder()
                 .setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
                 .setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
                 .build();
 
         cameraStream = new CameraStream();
-/*
+
+        pipeline = new CenterStagePipeline();
+
         vision = new VisionPortal.Builder()
                 .setCamera(cam)
                 .addProcessor(cameraStream)
                 .addProcessor(aprilTagProcessor)
+                .addProcessor(pipeline)
                 .build();
- */
 
         FtcDashboard.getInstance().startCameraStream(cameraStream, 0);
     }
-
-    private void initOpenCV(HardwareMap hardwareMap){
-        int monitorID = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        openCvWebcam = OpenCvCameraFactory.getInstance().createWebcam(cam, monitorID);
-
-        pipeline = new CenterStagePipeline();
-        openCvWebcam.setPipeline(pipeline);
-
-        openCvWebcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
-            @Override
-            public void onOpened() {
-                openCvWebcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
-            }
-
-            @Override
-            public void onError(int errorCode) {
-
-            }
-        });
-    }
-
-    public void setSlidePower(double pow){
-        slidePos = Range.clip(slidePos + ((SLIDE_RPM / 60) * SLIDE_TPR) * deltaTime * pow, 0, MAX_SLIDE_EXTENSION);
-        leftSlide.setTargetPosition((int)slidePos);
-        rightSlide.setTargetPosition((int)slidePos);
-    }
-
-    public void setSlidePos(int pos){
-        slidePos = pos;
-        leftSlide.setTargetPosition((int)slidePos);
-        rightSlide.setTargetPosition((int)slidePos);
-    }
+    /*
 
     public void setArmPos(double pos){
         leftArm.setPosition(pos);
@@ -304,6 +246,13 @@ public class CenterStageBot extends Robot<Mecanum>{
         return armState;
     }
 
+     */
+
+    @Override
+    public void update() {
+
+    }
+    /*
     public List<AprilTagDetection> getAprilTags(){
         return aprilTagProcessor.getDetections();
     }
@@ -337,4 +286,10 @@ public class CenterStageBot extends Robot<Mecanum>{
         deltaTime = newTime - prevTime;
         prevTime = newTime;
     }
+
+    public void stop(){
+        vision.close();
+    }
+
+ */
 }

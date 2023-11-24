@@ -18,7 +18,7 @@ public abstract class Robot<T extends Drive> {
 
     public Robot(){}
 
-    public void init(HardwareMap hardwareMap, T drive, Pose2d pose, MultipleTelemetry telemetry) {
+    public void init(T drive, Pose2d pose, MultipleTelemetry telemetry) {
         this.drive = drive;
 
         drive.setPoseEstimate(pose);
