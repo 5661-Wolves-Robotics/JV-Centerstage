@@ -17,9 +17,15 @@ public class ToggleIntake extends CommandBase {
     public void initialize() {
         if(m_intake.getState() == Intake.IntakeState.LOWERED){
             m_intake.setState(Intake.IntakeState.RAISED);
+            m_intake.disable();
         } else {
             m_intake.setState(Intake.IntakeState.LOWERED);
             m_intake.power();
         }
+    }
+
+    @Override
+    public boolean isFinished() {
+        return true;
     }
 }

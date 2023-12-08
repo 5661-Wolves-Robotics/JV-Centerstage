@@ -65,4 +65,16 @@ public class ClawArm extends SubsystemBase {
         m_clawServo.setPosition(state.getValue());
     }
 
+    public ClawState getClawState() {
+        return clawState;
+    }
+
+    public void open(){
+        setClawState(ClawState.OPEN);
+    }
+
+    public void close(){
+        setClawState(ClawState.CLOSED);
+    }
+
 }

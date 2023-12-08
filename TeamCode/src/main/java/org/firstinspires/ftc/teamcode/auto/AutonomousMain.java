@@ -1,9 +1,10 @@
-package org.firstinspires.ftc.teamcode.teleop;
+package org.firstinspires.ftc.teamcode.auto;
 
 import static org.firstinspires.ftc.teamcode.bot.subsystems.ClawArm.ArmState.LOWERED;
 import static org.firstinspires.ftc.teamcode.bot.subsystems.ClawArm.ArmState.RAISED;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.arcrobotics.ftclib.command.Command;
 import com.arcrobotics.ftclib.command.CommandOpMode;
 import com.arcrobotics.ftclib.command.CommandScheduler;
 import com.arcrobotics.ftclib.command.ConditionalCommand;
@@ -13,9 +14,12 @@ import com.arcrobotics.ftclib.command.RunCommand;
 import com.arcrobotics.ftclib.command.SequentialCommandGroup;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.teamcode.auto.commands.DriveToProp;
 import org.firstinspires.ftc.teamcode.bot.commands.AutoLowerArm;
 import org.firstinspires.ftc.teamcode.bot.commands.Delay;
 import org.firstinspires.ftc.teamcode.bot.commands.LocalDrive;
@@ -38,19 +42,13 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
-@TeleOp
-public class CommandTeleOp extends CommandOpMode {
-
-    GamepadEx driver, placer;
+@Autonomous
+public class AutonomousMain extends LinearOpMode {
 
     MecanumDriveBase drive;
-    LocalDrive localDrive;
-    PlacerDrive placerDrive;
     DualLinearSlide slide;
-    PowerSlide powerSlide;
     SequentialCommandGroup retractSlide;
     Intake intake;
-    ToggleIntake toggleIntake;
     ClawArm clawArm;
     AutoLowerArm autoLowerArm;
     MoveArm raiseArm;
@@ -59,13 +57,10 @@ public class CommandTeleOp extends CommandOpMode {
 
     CenterstageVision cv;
 
-
+    DriveToProp driveToProp;
 
     @Override
-    public void initialize() {
-        driver = new GamepadEx(gamepad1);
-        placer = new GamepadEx(gamepad2);
-
+    public void runOpMode() {
         drive = new MecanumDriveBase(hardwareMap);
         clawArm = new ClawArm(hardwareMap, "arm1", "claw");
         slide = new DualLinearSlide(hardwareMap, "rightSlide", "leftSlide", 4300);
@@ -73,10 +68,6 @@ public class CommandTeleOp extends CommandOpMode {
         droneLauncher = new DroneLauncher(hardwareMap, "launcher");
         cv = new CenterstageVision(hardwareMap, "Camera");
 
-        localDrive = new LocalDrive(drive, driver::getLeftX, driver::getLeftY, driver::getRightX);
-        placerDrive = new PlacerDrive(drive, placer::getLeftX, placer::getLeftY, Math.toRadians(90));
-
-        powerSlide = new PowerSlide(slide, ()-> driver.getTrigger(GamepadKeys.Trigger.RIGHT_TRIGGER) - driver.getTrigger(GamepadKeys.Trigger.LEFT_TRIGGER));
         retractSlide = new SequentialCommandGroup(
                 new InstantCommand(clawArm::open, clawArm),
                 new Delay(200),
@@ -87,41 +78,29 @@ public class CommandTeleOp extends CommandOpMode {
         raiseArm = new MoveArm(clawArm, RAISED);
         lowerArm = new MoveArm(clawArm, LOWERED);
 
-        toggleIntake = new ToggleIntake(intake);
+        CommandScheduler.getInstance().registerSubsystem(drive);
 
-        driver.getGamepadButton(GamepadKeys.Button.X)
-                .whenPressed(toggleIntake);
-        driver.getGamepadButton(GamepadKeys.Button.B)
-                .whenPressed(new InstantCommand(intake::reverse, intake))
-                .whenReleased(new ConditionalCommand(
-                        new InstantCommand(intake::power, intake),
-                        new InstantCommand(intake::disable, intake),
-                        ()-> intake.getState() == Intake.IntakeState.LOWERED
-                ));
-        driver.getGamepadButton(GamepadKeys.Button.A)
-                .whenPressed(new ParallelCommandGroup(
-                        placerDrive,
-                        new InstantCommand(clawArm::close, clawArm)
-                ));
-
-        placer.getGamepadButton(GamepadKeys.Button.DPAD_UP)
-                .whenPressed(raiseArm);
-        placer.getGamepadButton(GamepadKeys.Button.DPAD_DOWN)
-                .whenPressed(lowerArm);
-        placer.getGamepadButton(GamepadKeys.Button.Y)
-                .whenPressed(new InstantCommand(droneLauncher::launch, droneLauncher));
-        placer.getGamepadButton(GamepadKeys.Button.A)
-                .cancelWhenPressed(placerDrive)
-                .whenPressed(retractSlide);
-
-        register(drive);
-
-        drive.setDefaultCommand(localDrive);
-        slide.setDefaultCommand(powerSlide);
         clawArm.setDefaultCommand(autoLowerArm);
 
         telemetry.addData("PropPosition", cv::getPropPosition);
 
-        schedule(new RunCommand(telemetry::update));
+        CommandScheduler.getInstance().schedule(new RunCommand(telemetry::update));
+
+        driveToProp = new DriveToProp(drive, intake, cv);
+
+        CommandScheduler.getInstance().schedule(
+                new SequentialCommandGroup(
+                        new Delay(200),
+                        driveToProp
+                )
+        );
+
+        waitForStart();
+
+        while(opModeIsActive() && !isStopRequested()) {
+            CommandScheduler.getInstance().run();
+        }
+
+        CommandScheduler.getInstance().reset();
     }
 }

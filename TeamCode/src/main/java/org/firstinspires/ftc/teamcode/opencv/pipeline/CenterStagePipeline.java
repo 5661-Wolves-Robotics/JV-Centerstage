@@ -23,21 +23,21 @@ public class CenterStagePipeline implements VisionProcessor {
 
     private Paint linePaint = new Paint();
 
-    private final Point LEFT_RECT_P = new Point(180, 220);
-    private final Point CENTER_RECT_P = new Point(320, 60);
-    private final Point RIGHT_RECT_P = new Point(460, 220);
+    private final Point LEFT_RECT_P = new Point(20, 330);
+    private final Point CENTER_RECT_P = new Point(320, 300);
+    private final Point RIGHT_RECT_P = new Point(580, 330);
 
     private final Rect LEFT_RECT = new Rect(
         LEFT_RECT_P,
-        new Size(20, 20)
+        new Size(40, 40)
     );
     private final Rect CENTER_RECT = new Rect(
         CENTER_RECT_P,
-        new Size(20, 20)
+        new Size(40, 40)
     );
     private final Rect RIGHT_RECT = new Rect(
         RIGHT_RECT_P,
-        new Size(20, 20)
+        new Size(40, 40)
     );
 
     private Mat frame = new Mat();
@@ -57,30 +57,39 @@ public class CenterStagePipeline implements VisionProcessor {
     @Override
     public void init(int width, int height, CameraCalibration calibration) {
         linePaint.setColor(Color.BLUE);
+        linePaint.setAlpha(100);
         linePaint.setStyle(Paint.Style.STROKE);
-        linePaint.setStrokeWidth(1);
+        linePaint.setStrokeWidth(3);
     }
+
+    private boolean initialized = false;
 
     @Override
     public Object processFrame(Mat input, long captureTimeNanos) {
         toYCrCb(input);
-        leftCb = cb.submat(LEFT_RECT);
-        rightCb = cb.submat(RIGHT_RECT);
-        centerCb = cb.submat(CENTER_RECT);
-
-        int leftAvg = (int)Core.mean(leftCb).val[0];
-        int centerAvg = (int)Core.mean(centerCb).val[0];
-        int rightAvg = (int)Core.mean(rightCb).val[0];
-
-        int max = Math.max(Math.max(leftAvg, rightAvg), centerAvg);
-
-        if(max == leftAvg){
-            propPos = PropPosition.LEFT;
-        } else if(max == centerAvg){
-            propPos = PropPosition.CENTER;
-        } else {
-            propPos = PropPosition.RIGHT;
+        if(!initialized) {
+            leftCb = cr.submat(LEFT_RECT);
+            centerCb = cr.submat(CENTER_RECT);
+            rightCb = cr.submat(RIGHT_RECT);
+            initialized = true;
         }
+
+        double leftAvg = Core.mean(leftCb).val[0];
+        double centerAvg = Core.mean(centerCb).val[0];
+        double rightAvg = Core.mean(rightCb).val[0];
+
+        if(leftAvg > centerAvg){
+            if(leftAvg > rightAvg) propPos = PropPosition.LEFT;
+            else propPos = PropPosition.RIGHT;
+        } else if(rightAvg > centerAvg) propPos = PropPosition.RIGHT;
+        else propPos = PropPosition.CENTER;
+
+/*
+        Imgproc.cvtColor(input, input, Imgproc.COLOR_RGB2YCrCb);
+        Core.extractChannel(input, input, 2);
+
+
+ */
 
         return propPos;
     }

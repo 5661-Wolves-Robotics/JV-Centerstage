@@ -4,16 +4,10 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.roadrunner.control.PIDCoefficients;
 import com.acmerobotics.roadrunner.control.PIDFController;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.CenterstageOpMode;
-import org.firstinspires.ftc.teamcode.StateController;
-import org.firstinspires.ftc.teamcode.bot.CenterStageBot;
-import org.firstinspires.ftc.teamcode.drive.DriveConstants;
-import org.firstinspires.ftc.teamcode.drive.FieldConstants;
 import org.firstinspires.ftc.teamcode.util.Gamepad;
-import org.firstinspires.ftc.teamcode.util.collision.shapes.Box;
 
 @Config
 @TeleOp(group = "Main")
@@ -35,14 +29,9 @@ public class TeleOpMain extends CenterstageOpMode {
 
     private boolean colliding = true;
 
-    private StateController<State> controller = new StateController(State.DRIVING);
-
     @Override
     public void opModeInit() {
         super.opModeInit();
-
-        controller.addState(State.DRIVING, ()->driving());
-        controller.addState(State.PLACING, ()->placing());
 
         driver = new Gamepad(gamepad1);
         placer = new Gamepad(gamepad2);
@@ -60,8 +49,6 @@ public class TeleOpMain extends CenterstageOpMode {
         placer.update();
 
         //DRIVER-----------
-
-        controller.update();
     }
 
     private void bindButtons(){

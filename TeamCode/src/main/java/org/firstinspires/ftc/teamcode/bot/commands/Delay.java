@@ -1,24 +1,28 @@
 package org.firstinspires.ftc.teamcode.bot.commands;
 
 import com.arcrobotics.ftclib.command.CommandBase;
+import com.arcrobotics.ftclib.util.Timing;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import java.util.concurrent.TimeUnit;
 
 public class Delay extends CommandBase {
 
-    private final double m_timeout;
-    private ElapsedTime time = null;
+    private final long m_timeout;
+    private Timing.Timer timer;
 
-    public Delay(double timeout){
+    public Delay(long timeout){
         m_timeout = timeout;
     }
 
     @Override
     public void initialize() {
-        time = new ElapsedTime();
+        timer = new Timing.Timer(m_timeout, TimeUnit.MILLISECONDS);
+        timer.start();
     }
 
     @Override
     public boolean isFinished() {
-        return time.seconds() >= m_timeout;
+        return timer.done();
     }
 }
