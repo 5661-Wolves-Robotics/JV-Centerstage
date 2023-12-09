@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.bot.commands.ToggleIntake;
 import org.firstinspires.ftc.teamcode.bot.subsystems.Intake;
 
 @TeleOp
-public class CommandTeleOp extends CommandOpMode {
+public class TeleOpMain extends CommandOpMode {
 
     CenterStageBot bot;
 
