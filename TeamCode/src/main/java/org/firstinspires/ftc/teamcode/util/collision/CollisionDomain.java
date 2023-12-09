@@ -1,19 +1,16 @@
 package org.firstinspires.ftc.teamcode.util.collision;
 
-import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 
 import org.firstinspires.ftc.teamcode.util.collision.shapes.Box;
-import org.firstinspires.ftc.teamcode.util.collision.shapes.Point;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 public class CollisionDomain {
 
-    List<Box> boxes = new ArrayList<>();
+    List<Box> boxes;
 
     private CollisionDomain(List<Box> boxes){
         this.boxes = boxes;
@@ -35,7 +32,6 @@ public class CollisionDomain {
                 corner1_x.times(-1).minus(corner1_y).plus(center1),
         };
 
-        List<Box> res = new ArrayList<>();
 
         for(Box box : boxes){
             Vector2d rect2_x = box.pose.headingVec();
@@ -71,7 +67,6 @@ public class CollisionDomain {
             double min2_x = getMin(projected2_x), max2_x = getMax(projected2_x), min2_y = getMin(projected2_y), max2_y = getMax(projected2_y);
 
             if(isHit(min1_x, max1_x, box.width / 2) && isHit(min1_y, max1_y, box.height / 2) && isHit(min2_x, max2_x, obj.width / 2) && isHit(min2_y, max2_y, obj.height / 2)){
-                res.add(box);
                 Vector2d diff = obj.pose.vec().minus(box.pose.vec()).rotated(-box.pose.getHeading());
                 double x = diff.getX() / box.width;
                 double y = diff.getY() / box.height;
