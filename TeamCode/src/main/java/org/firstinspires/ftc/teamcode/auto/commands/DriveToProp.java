@@ -4,30 +4,21 @@ import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
 import com.arcrobotics.ftclib.command.CommandBase;
 
-import org.firstinspires.ftc.teamcode.bot.subsystems.CenterstageVision;
-import org.firstinspires.ftc.teamcode.bot.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.bot.subsystems.MecanumDriveBase;
 import org.firstinspires.ftc.teamcode.drive.Mecanum;
+import org.firstinspires.ftc.teamcode.opencv.pipeline.PropPositionSupplier;
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequence;
 
 public class DriveToProp extends CommandBase {
 
-    private final MecanumDriveBase m_driveBase;
     private final Mecanum m_drive;
-    private final Intake m_intake;
-    private final CenterstageVision m_cv;
+    private final PropPositionSupplier m_propPositionSupplier;
 
-    private final Pose2d LEFT_POS = new Pose2d(26, 2, Math.toRadians(90));
-    private final Pose2d CENTER_POS = new Pose2d(30, 4, 0);
-    private final Pose2d RIGHT_POS = new Pose2d(26, -2, -Math.toRadians(90));
-
-    public DriveToProp(MecanumDriveBase driveBase, Intake intake, CenterstageVision cv){
-        m_driveBase = driveBase;
+    public DriveToProp(MecanumDriveBase driveBase, PropPositionSupplier propPositionSupplier){
         m_drive = driveBase.getDrive();
-        m_intake = intake;
-        m_cv = cv;
+        m_propPositionSupplier = propPositionSupplier;
 
-        addRequirements(driveBase, intake, cv);
+        addRequirements(driveBase);
     }
 
     @Override
@@ -35,7 +26,7 @@ public class DriveToProp extends CommandBase {
 
         TrajectorySequence sequence = null;
 
-        switch(m_cv.getPropPosition()){
+        switch(m_propPositionSupplier.getEnum()){
             case LEFT:
                 sequence = m_drive.trajectorySequenceBuilder(new Pose2d(0, 0, 0))
                         .lineTo(new Vector2d(26, 0))

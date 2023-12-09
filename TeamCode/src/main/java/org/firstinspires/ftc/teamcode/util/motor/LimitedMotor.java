@@ -1,16 +1,14 @@
 package org.firstinspires.ftc.teamcode.util.motor;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorController;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorImplEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
 
 public class LimitedMotor{
 
-    private DcMotorEx motor;
-    private int min, max;
+    private final DcMotorEx motor;
+    private final int min, max;
     private boolean negative = false;
 
     public LimitedMotor(DcMotorEx motor, int min, int max)
