@@ -4,12 +4,11 @@ import com.qualcomm.robotcore.hardware.Servo;
 
 public class ToggleServo {
 
-    private float truePos;
-    private float falsePos;
-    private Servo servo;
+    private double truePos, falsePos;
+    private final Servo servo;
     private boolean state;
 
-    public ToggleServo(Servo servo, float truePos, float falsePos, boolean state, boolean init)
+    public ToggleServo(Servo servo, double truePos, double falsePos, boolean state, boolean init)
     {
         this.servo = servo;
         this.truePos = truePos;

@@ -4,10 +4,12 @@ import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.teamcode.util.servo.ToggleServo;
+
 public class ClawArm extends SubsystemBase {
 
     private final Servo m_armServo;
-    private final Servo m_clawServo;
+    private final ToggleServo m_clawServo;
 
     public enum ArmState{
         RAISED(0.3),
@@ -26,28 +28,11 @@ public class ClawArm extends SubsystemBase {
 
     private ArmState armState = ArmState.STORED;
 
-    public enum ClawState{
-        CLOSED(0.0),
-        OPEN(0.21);
-
-        private final double pos;
-        ClawState(double pos){
-            this.pos = pos;
-        }
-
-        double getValue(){
-            return pos;
-        }
-    }
-
-    private ClawState clawState = ClawState.OPEN;
-
     public ClawArm(HardwareMap hardwareMap, String armServo, String clawServo){
         m_armServo = hardwareMap.get(Servo.class, armServo);
-        m_clawServo = hardwareMap.get(Servo.class, clawServo);
+        m_clawServo = new ToggleServo(hardwareMap.get(Servo.class, clawServo), 0.0 /*CLOSED*/, 0.21 /*OPEN*/, false, true);
 
         setArmState(armState);
-        setClawState(clawState);
     }
 
     public void setArmState(ArmState state){
@@ -59,21 +44,12 @@ public class ClawArm extends SubsystemBase {
         return armState;
     }
 
-    public void setClawState(ClawState state){
-        clawState = state;
-        m_clawServo.setPosition(state.getValue());
-    }
-
-    public ClawState getClawState() {
-        return clawState;
-    }
-
     public void open(){
-        setClawState(ClawState.OPEN);
+        m_clawServo.setState(true);
     }
 
     public void close(){
-        setClawState(ClawState.CLOSED);
+        m_clawServo.setState(false);
     }
 
 }
