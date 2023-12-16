@@ -27,32 +27,27 @@ public class CenterStageBot extends Robot {
     public DualLinearSlide slide;
     public Intake intake;
     public DroneLauncher droneLauncher;
-    public CenterstageVision cv;
 
-    public SequentialCommandGroup retractSlide;
+    public RetractLinearSlide retractSlide;
     public AutoLowerArm autoLowerArm;
     public MoveArm lowerArm;
     public MoveArm raiseArm;
 
     public CenterStageBot(HardwareMap hardwareMap){
         drive = new MecanumDriveBase(hardwareMap);
-        clawArm = new ClawArm(hardwareMap, "arm1", "claw");
+        clawArm = new ClawArm(hardwareMap, "arm2", "claw");
         slide = new DualLinearSlide(hardwareMap, "rightSlide", "leftSlide", 4300);
         intake = new Intake(hardwareMap, "dropdown", "perpendicularEncoder");
         droneLauncher = new DroneLauncher(hardwareMap, "launcher");
 
-        cv = new CenterstageVision(hardwareMap, "Camera");
-
-        retractSlide = new SequentialCommandGroup(
-                new InstantCommand(clawArm::open, clawArm).withTimeout(200),
-                new RetractLinearSlide(slide, clawArm)
-        );
+        retractSlide = new RetractLinearSlide(slide, clawArm);
 
         autoLowerArm = new AutoLowerArm(slide, clawArm);
         raiseArm = new MoveArm(clawArm, RAISED);
         lowerArm = new MoveArm(clawArm, LOWERED);
 
-        register(drive);
+        register(clawArm);
+
         clawArm.setDefaultCommand(autoLowerArm);
     }
 

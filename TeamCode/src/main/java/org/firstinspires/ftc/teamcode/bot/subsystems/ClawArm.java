@@ -30,7 +30,7 @@ public class ClawArm extends SubsystemBase {
 
     public ClawArm(HardwareMap hardwareMap, String armServo, String clawServo){
         m_armServo = hardwareMap.get(Servo.class, armServo);
-        m_clawServo = new ToggleServo(hardwareMap.get(Servo.class, clawServo), 0.0 /*CLOSED*/, 0.21 /*OPEN*/, false, true);
+        m_clawServo = new ToggleServo(hardwareMap.get(Servo.class, clawServo), 0.21 /*OPEN*/, 0. /*CLOSED*/, true, true);
 
         setArmState(armState);
     }
@@ -50,6 +50,10 @@ public class ClawArm extends SubsystemBase {
 
     public void close(){
         m_clawServo.setState(false);
+    }
+
+    public void toggleClaw(){
+        m_clawServo.toggle();
     }
 
 }

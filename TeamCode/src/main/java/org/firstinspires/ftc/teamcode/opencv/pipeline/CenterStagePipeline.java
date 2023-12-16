@@ -87,11 +87,8 @@ public class CenterStagePipeline implements VisionProcessor {
 /*
         Imgproc.cvtColor(input, input, Imgproc.COLOR_RGB2YCrCb);
         Core.extractChannel(input, input, 2);
-
-
  */
-
-        return propPos;
+        return input;
     }
 
     @Override

@@ -3,7 +3,9 @@ package org.firstinspires.ftc.teamcode.teleop;
 import com.arcrobotics.ftclib.command.CommandOpMode;
 import com.arcrobotics.ftclib.command.ConditionalCommand;
 import com.arcrobotics.ftclib.command.InstantCommand;
-import com.arcrobotics.ftclib.command.ParallelCommandGroup;
+import com.arcrobotics.ftclib.command.RunCommand;
+import com.arcrobotics.ftclib.command.SequentialCommandGroup;
+import com.arcrobotics.ftclib.command.WaitCommand;
 import com.arcrobotics.ftclib.gamepad.GamepadEx;
 import com.arcrobotics.ftclib.gamepad.GamepadKeys;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -18,8 +20,6 @@ import org.firstinspires.ftc.teamcode.bot.subsystems.Intake;
 @TeleOp
 public class TeleOpMain extends CommandOpMode {
 
-    CenterStageBot bot;
-
     GamepadEx driver, placer;
     LocalDrive localDrive;
     PlacerDrive placerDrive;
@@ -28,7 +28,7 @@ public class TeleOpMain extends CommandOpMode {
 
     @Override
     public void initialize() {
-        bot = new CenterStageBot(hardwareMap);
+        CenterStageBot bot = new CenterStageBot(hardwareMap);
 
         driver = new GamepadEx(gamepad1);
         placer = new GamepadEx(gamepad2);
@@ -36,7 +36,7 @@ public class TeleOpMain extends CommandOpMode {
         localDrive = new LocalDrive(bot.drive, driver::getLeftX, driver::getLeftY, driver::getRightX);
         placerDrive = new PlacerDrive(bot.drive, placer::getLeftX, placer::getLeftY, Math.toRadians(90));
 
-        powerSlide = new PowerSlide(bot.slide, ()-> driver.getTrigger(GamepadKeys.Trigger.RIGHT_TRIGGER) - driver.getTrigger(GamepadKeys.Trigger.LEFT_TRIGGER));
+        powerSlide = new PowerSlide(bot.slide, () -> placer.getTrigger(GamepadKeys.Trigger.RIGHT_TRIGGER) - placer.getTrigger(GamepadKeys.Trigger.LEFT_TRIGGER));
 
         toggleIntake = new ToggleIntake(bot.intake);
 
@@ -50,10 +50,8 @@ public class TeleOpMain extends CommandOpMode {
                         ()-> bot.intake.getState() == Intake.IntakeState.LOWERED
                 ));
         driver.getGamepadButton(GamepadKeys.Button.A)
-                .whenPressed(new ParallelCommandGroup(
-                        placerDrive,
-                        new InstantCommand(bot.clawArm::close, bot.clawArm)
-                ));
+                .whenPressed(placerDrive)
+                .whenPressed(new InstantCommand(bot.clawArm::close, bot.clawArm));
 
         placer.getGamepadButton(GamepadKeys.Button.DPAD_UP)
                 .whenPressed(bot.raiseArm);
@@ -62,10 +60,22 @@ public class TeleOpMain extends CommandOpMode {
         placer.getGamepadButton(GamepadKeys.Button.Y)
                 .whenPressed(new InstantCommand(bot.droneLauncher::launch, bot.droneLauncher));
         placer.getGamepadButton(GamepadKeys.Button.A)
-                .cancelWhenPressed(placerDrive)
-                .whenPressed(bot.retractSlide);
+                .whenPressed(new ConditionalCommand(
+                        new SequentialCommandGroup(
+                            new InstantCommand(bot.clawArm::open, bot.clawArm),
+                            new WaitCommand(200),
+                            bot.retractSlide
+                        ),
+                        new InstantCommand(bot.clawArm::toggleClaw, bot.clawArm),
+                        () -> placerDrive.isScheduled()
+                ))
+                .cancelWhenPressed(placerDrive);
+
+        register(bot.drive, bot.slide);
 
         bot.drive.setDefaultCommand(localDrive);
         bot.slide.setDefaultCommand(powerSlide);
+
+        schedule(new RunCommand(telemetry::update));
     }
 }

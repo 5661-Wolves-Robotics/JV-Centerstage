@@ -23,6 +23,8 @@ public class CenterstageVision extends SubsystemBase {
     private final AprilTagProcessor aprilTagProcessor;
     private final CameraStream cameraStream;
 
+    private CenterStagePipeline.PropPosition detectedPos = null;
+
     public CenterstageVision(HardwareMap hardwareMap, String cam){
         m_cam = hardwareMap.get(WebcamName.class, cam);
 
@@ -45,7 +47,15 @@ public class CenterstageVision extends SubsystemBase {
         FtcDashboard.getInstance().startCameraStream(cameraStream, 0);
     }
 
+    public void storePropPosition(CenterStagePipeline.PropPosition propPos){
+        detectedPos = propPos;
+    }
+
     public CenterStagePipeline.PropPosition getPropPosition(){
+        return detectedPos;
+    }
+
+    public CenterStagePipeline.PropPosition getPipelinePosition(){
         return pipeline.getPosition();
     }
 
