@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.bot.subsystems;
 
+import android.util.Size;
+
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.arcrobotics.ftclib.command.SubsystemBase;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -42,6 +44,7 @@ public class CenterstageVision extends SubsystemBase {
                 .addProcessor(cameraStream)
                 .addProcessor(aprilTagProcessor)
                 .addProcessor(pipeline)
+                .setCameraResolution(new Size(640, 480))
                 .build();
 
         FtcDashboard.getInstance().startCameraStream(cameraStream, 0);
