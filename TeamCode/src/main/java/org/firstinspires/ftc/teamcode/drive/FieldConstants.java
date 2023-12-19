@@ -20,10 +20,23 @@ public class FieldConstants {
             .addColliders(new Box(BLUE_BOARD, 16, 24))
             .build();
 
-    public static enum Side {
+    public enum Side {
         BLUE,
         RED
     }
-    public static Side side = Side.RED;
+
+    public enum Stage{
+        FRONT,
+        BACK
+    }
+
+    public static Pose2d getFieldStartPose(Side side, Stage stage){
+        return new Pose2d(stage == Stage.BACK ? 12 : -24, side == Side.RED ? -63 : 63, side == Side.RED ? Math.toRadians(90) : Math.toRadians(270));
+    }
+
+    @FunctionalInterface
+    public interface EnumSupplier<T>{
+        T getVal();
+    }
 
 }

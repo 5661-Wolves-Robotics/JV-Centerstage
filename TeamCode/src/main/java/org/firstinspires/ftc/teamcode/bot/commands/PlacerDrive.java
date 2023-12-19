@@ -38,7 +38,7 @@ public class PlacerDrive extends CommandBase {
         m_drive.setFieldCentricWeightedDrivePower(new Pose2d(
                 -m_horizontal.getAsDouble() * SPEED,
                 -m_vertical.getAsDouble() * SPEED,
-                (headingController.update(m_drive.getExternalHeading()) * DriveConstants.kV) * DriveConstants.TRACK_WIDTH
+                (headingController.update(m_drive.getPoseEstimate().getHeading()) * DriveConstants.kV) * DriveConstants.TRACK_WIDTH
         ));
     }
 }

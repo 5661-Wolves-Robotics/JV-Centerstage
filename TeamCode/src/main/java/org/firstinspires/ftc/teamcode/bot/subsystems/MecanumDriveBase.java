@@ -10,6 +10,7 @@ import org.firstinspires.ftc.teamcode.drive.Mecanum;
 public class MecanumDriveBase extends SubsystemBase {
 
     private final Mecanum m_drive;
+    private Pose2d startPose;
 
     public MecanumDriveBase(HardwareMap hardwareMap){
         m_drive = new Mecanum(hardwareMap);
@@ -25,7 +26,12 @@ public class MecanumDriveBase extends SubsystemBase {
         return m_drive;
     }
 
-    public Pose2d getStartPosition(){
-        return FieldConstants.RED_BACKSTAGE_START;
+    public void setPosition(Pose2d startPose){
+        m_drive.setPoseEstimate(startPose);
+        this.startPose = startPose;
+    }
+
+    public Pose2d getStartPose(){
+        return startPose;
     }
 }
