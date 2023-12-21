@@ -54,6 +54,12 @@ public class CenterstageVision extends SubsystemBase {
         detectedPos = propPos;
     }
 
+    //1 - RED
+    //2 - BLUE
+    public void extractColorChannel(int col){
+        pipeline.extractChannel(col);
+    }
+
     public CenterStagePipeline.PropPosition getPropPosition(){
         return detectedPos;
     }

@@ -55,12 +55,12 @@ public class DriveToProp extends CommandBase {
                 break;
             case CENTER:
                 m_drive.followTrajectory(m_drive.trajectoryBuilder(m_drive.getPoseEstimate())
-                        .splineTo(new Vector2d(4, -30 * xScale), Math.toRadians(90 * xScale))
+                        .splineTo(new Vector2d(16, -34 * xScale), Math.toRadians(90 * xScale))
                         .build());
                 break;
             case RIGHT:
                 m_drive.followTrajectory(m_drive.trajectoryBuilder(m_drive.getPoseEstimate(), Math.toRadians(360))
-                        .splineTo(new Vector2d(31, -34 * xScale), Math.toRadians(90 * xScale))
+                        .splineTo(new Vector2d(34, -34 * xScale), Math.toRadians(90 * xScale))
                         .build());
                 break;
         }

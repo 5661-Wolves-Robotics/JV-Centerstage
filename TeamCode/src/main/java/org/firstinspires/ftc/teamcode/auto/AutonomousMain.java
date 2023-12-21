@@ -21,7 +21,7 @@ import org.firstinspires.ftc.teamcode.drive.FieldConstants;
 import org.firstinspires.ftc.teamcode.opencv.pipeline.CenterStagePipeline;
 
 @Autonomous
-public class AutonomousMain extends LinearOpMode {
+public class AutonomousMain extends CommandOpMode {
 
     CenterStageBot bot;
 
@@ -31,11 +31,11 @@ public class AutonomousMain extends LinearOpMode {
 
     CenterstageVision cv;
 
-    private FieldConstants.Stage stage = FieldConstants.Stage.BACK;
-    private FieldConstants.Side side = FieldConstants.Side.RED;
+    FieldConstants.Stage stage = FieldConstants.Stage.BACK;
+    FieldConstants.Side side = FieldConstants.Side.RED;
 
     @Override
-    public void runOpMode() {
+    public void initialize() {
         bot = new CenterStageBot(hardwareMap);
 
         cv = new CenterstageVision(hardwareMap, "Camera");
@@ -44,32 +44,28 @@ public class AutonomousMain extends LinearOpMode {
         driveToProp = new DriveToProp(bot.drive, cv, () -> side, () -> stage);
         pushPixel = new PushPixel(bot.intake);
 
-        CommandScheduler.getInstance().schedule(
+        schedule(
                 new RunCommand(telemetry::update),
                 new SequentialCommandGroup(
-                        detectProp.withTimeout(600),
+                        detectProp.withTimeout(1000),
                         driveToProp,
                         pushPixel.withTimeout(400)
                 )
         );
 
-        while(!isStarted()){
+        while(!isStarted() && !isStopRequested()){
             if(gamepad1.dpad_up) stage = FieldConstants.Stage.BACK;
             else if(gamepad1.dpad_down) stage = FieldConstants.Stage.FRONT;
 
             if(gamepad1.dpad_left) side = FieldConstants.Side.BLUE;
             else if(gamepad1.dpad_right) side = FieldConstants.Side.RED;
-
             updateTelemetry();
+
+            if(gamepad1.a) break;
         }
 
+        cv.extractColorChannel(side == FieldConstants.Side.RED ? 1 : 2);
         bot.drive.setPosition(FieldConstants.getFieldStartPose(side, stage));
-
-        while(opModeIsActive() && !isStopRequested()){
-            CommandScheduler.getInstance().run();
-        }
-
-        CommandScheduler.getInstance().reset();
     }
 
     public void updateTelemetry(){

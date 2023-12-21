@@ -41,17 +41,17 @@ public class CenterStagePipeline implements VisionProcessor {
     );
 
     private Mat frame = new Mat();
-    private Mat cb = new Mat();
-    private Mat cr = new Mat();
+    private Mat channel = new Mat();
 
-    private Mat leftCb, rightCb, centerCb;
+    private Mat left, right, center;
 
     private volatile PropPosition propPos = PropPosition.LEFT;
 
+    private volatile int coi = 1;
+
     private void toYCrCb(Mat rgbFrame){
         Imgproc.cvtColor(rgbFrame, frame, Imgproc.COLOR_RGB2YCrCb);
-        Core.extractChannel(frame, cb, 2);
-        Core.extractChannel(frame, cr, 1);
+        Core.extractChannel(frame, channel, coi);
     }
 
     @Override
@@ -68,15 +68,15 @@ public class CenterStagePipeline implements VisionProcessor {
     public Object processFrame(Mat input, long captureTimeNanos) {
         toYCrCb(input);
         if(!initialized) {
-            leftCb = cr.submat(LEFT_RECT);
-            centerCb = cr.submat(CENTER_RECT);
-            rightCb = cr.submat(RIGHT_RECT);
+            left = channel.submat(LEFT_RECT);
+            center = channel.submat(CENTER_RECT);
+            right = channel.submat(RIGHT_RECT);
             initialized = true;
         }
 
-        double leftAvg = Core.mean(leftCb).val[0];
-        double centerAvg = Core.mean(centerCb).val[0];
-        double rightAvg = Core.mean(rightCb).val[0];
+        double leftAvg = Core.mean(left).val[0];
+        double centerAvg = Core.mean(center).val[0];
+        double rightAvg = Core.mean(right).val[0];
 
         if(leftAvg > centerAvg){
             if(leftAvg > rightAvg) propPos = PropPosition.LEFT;
@@ -89,6 +89,10 @@ public class CenterStagePipeline implements VisionProcessor {
         Core.extractChannel(input, input, 2);
  */
         return input;
+    }
+
+    public void extractChannel(int coi){
+        this.coi = coi;
     }
 
     @Override
